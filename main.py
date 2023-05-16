@@ -9,6 +9,8 @@ from sklearn.metrics import mean_squared_error
 ### --------- Functions --------- ###
 # Create time series features based on time series index.
 def create_features(df):
+    # using df.copy() so that the function modifies a copy of the df and
+    # not the original
     df = df.copy()
     df['hour'] = df.index.hour
     df['dayofweek'] = df.index.dayofweek
@@ -71,14 +73,15 @@ test = df.loc[df.index >= '01-01-2015']
 # plt.show()
 
 # chart3
+# look at a single week of data
 # df.loc[(df.index > '01-01-2010') & (df.index < '01-08-2010')] \
 #     .plot(figsize=(15, 5), title='Chart 3 Week Of Data')
 # plt.show()
 
 
-# create feature
+# create features
+# looking at the whole dataset
 df = create_features(df)
-
 
 # Visualize the Feature/Target(Label) Relationship
 # chart4
@@ -94,7 +97,8 @@ df = create_features(df)
 # plt.show()
 
 
-# Create the model
+# create features
+# specific to this model
 train = create_features(train)
 test = create_features(test)
 
@@ -107,6 +111,13 @@ y_train = train[TARGET]
 X_test = test[FEATURES]
 y_test = test[TARGET]
 
+
+# Create the model
+# n_estimators - number of trees this boosted algorithm will create
+# early_stopping_rounds - have model training stop early if performance 
+#                         doesn't improve after x trees
+# learning_rate - the lower the learning rate the smaller the steps taken 
+#                 in attempting to find the minimum loss
 reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',    
                         n_estimators=1000,
                         early_stopping_rounds=50,
@@ -114,43 +125,48 @@ reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',
                         max_depth=3,
                         learning_rate=0.01
                         )
+# when verbose set to a number and not True it will only print out the loss
+# every verbose=x trees
 reg.fit(X_train, y_train,
         eval_set=[(X_train, y_train), (X_test, y_test)],
         verbose=100)
 
 
 # Feature Importance
-# chart6
 # fi = pd.DataFrame(data=reg.feature_importances_,
 #                     index=reg.feature_names_in_,
 #                     columns=['importance']
 #                     )
+# chart6
 # fi.sort_values('importance').plot(kind='barh', title='Chart 6 Feature Importance')
 # plt.show()
 
+# from the chart it can be seen that the model was mostly using the hour feature
+# and the month feature
 
 # Forecast on Test
 test['prediction'] = reg.predict(X_test)
 df = df.merge(test[['prediction']], how='left', left_index=True, right_index=True)
 
 # chart7
-# ax = df[['PJME_MW']].plot(figsize=(15, 5))
-# df['prediction'].plot(ax=ax, style='.')
-# plt.legend(['Actual Data', 'Predictions'])
-# ax.set_title('Chart 7 Raw Dat and Prediction')
-# plt.show()
+ax = df[['PJME_MW']].plot(figsize=(15, 5))
+df['prediction'].plot(ax=ax, style='.')
+plt.legend(['Actual Data', 'Predictions'])
+ax.set_title('Chart 7 Raw Dat and Prediction')
+plt.show()
 
 # chart8
-# ax = df.loc[(df.index > '04-01-2018') & (df.index < '04-08-2018')]['PJME_MW'] \
-#     .plot(figsize=(15, 5), title='Chart 8 Week Of Data')
-# df.loc[(df.index > '04-01-2018') & (df.index < '04-08-2018')]['prediction'] \
-#     .plot(style='.')
-# plt.legend(['Actual Data','Prediction'])
-# plt.show()
+ax = df.loc[(df.index > '04-01-2018') & (df.index < '04-08-2018')]['PJME_MW'] \
+    .plot(figsize=(15, 5), title='Chart 8 Week Of Data')
+df.loc[(df.index > '04-01-2018') & (df.index < '04-08-2018')]['prediction'] \
+    .plot(style='.')
+plt.legend(['Actual Data','Prediction'])
+plt.show()
 
 
 # Score (RMSE)
 score = np.sqrt(mean_squared_error(test['PJME_MW'], test['prediction']))
+# prinnt the score with 2 decimal points
 # print(f'RMSE Score on Test set: {score:0.2f}')
 # RMSE Score on Test set: 3721.75
 
@@ -158,7 +174,9 @@ score = np.sqrt(mean_squared_error(test['PJME_MW'], test['prediction']))
 # Calculate Error
 # Look at the worst and best predicted days
 test['error'] = np.abs(test[TARGET] - test['prediction'])
+# create new df based on the indexed date so that we can group by this value
 test['date'] = test.index.date
+# worst predictions
 # print(test.groupby(['date'])['error'].mean().sort_values(ascending=False).head(10))
 # date
 # 2016-08-13    12839.597087
@@ -173,23 +191,18 @@ test['date'] = test.index.date
 # 2018-01-07     9739.144206
 # Name: error, dtype: float64
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# best predictions
+# print(test.groupby(['date'])['error'].mean().sort_values(ascending=True).head(10))
+# date
+# 2017-10-24    349.390462
+# 2015-10-28    397.410807
+# 2016-10-27    528.968913
+# 2015-05-06    529.528971
+# 2017-10-15    535.292318
+# 2018-05-16    585.349935
+# 2016-10-08    625.825439
+# 2015-10-03    653.130941
+# 2016-09-16    656.402995
+# 2015-11-06    674.912109
+# Name: error, dtype: float64
 
