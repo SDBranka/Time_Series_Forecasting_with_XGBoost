@@ -182,69 +182,82 @@ for train_idx, val_idx in tss.split(df):
     train = create_features(train)
     test = create_features(test)
 
-FEATURES = ['dayofyear', 'hour', 'dayofweek', 
-            'quarter', 'month','year',
-            'lag1','lag2','lag3'
-            ]
-TARGET = 'PJME_MW'
+    FEATURES = ['dayofyear', 'hour', 'dayofweek', 
+                'quarter', 'month','year',
+                'lag1','lag2','lag3'
+                ]
+    TARGET = 'PJME_MW'
 
-X_train = train[FEATURES]
-# print(X_train)
-#                      dayofyear  hour  dayofweek  ...     lag1     lag2     lag3
-# Datetime                                         ...
-# 2002-01-01 01:00:00          1     1          1  ...      NaN      NaN      NaN
-# 2002-01-01 02:00:00          1     2          1  ...      NaN      NaN      NaN
-# 2002-01-01 03:00:00          1     3          1  ...      NaN      NaN      NaN
-# 2002-01-01 04:00:00          1     4          1  ...      NaN      NaN      NaN
-# 2002-01-01 05:00:00          1     5          1  ...      NaN      NaN      NaN
-# ...                        ...   ...        ...  ...      ...      ...      ...
-# 2017-08-01 20:00:00        213    20          1  ...  41056.0  46225.0  43934.0
-# 2017-08-01 21:00:00        213    21          1  ...  40151.0  44510.0  42848.0
-# 2017-08-01 22:00:00        213    22          1  ...  38662.0  42467.0  40861.0
-# 2017-08-01 23:00:00        213    23          1  ...  35583.0  38646.0  37361.0
-# 2017-08-02 00:00:00        214     0          2  ...  32181.0  34829.0  33743.0
+    X_train = train[FEATURES]
+    # print(X_train)
+    #                      dayofyear  hour  dayofweek  ...     lag1     lag2     lag3
+    # Datetime                                         ...
+    # 2002-01-01 01:00:00          1     1          1  ...      NaN      NaN      NaN
+    # 2002-01-01 02:00:00          1     2          1  ...      NaN      NaN      NaN
+    # 2002-01-01 03:00:00          1     3          1  ...      NaN      NaN      NaN
+    # 2002-01-01 04:00:00          1     4          1  ...      NaN      NaN      NaN
+    # 2002-01-01 05:00:00          1     5          1  ...      NaN      NaN      NaN
+    # ...                        ...   ...        ...  ...      ...      ...      ...
+    # 2017-08-01 20:00:00        213    20          1  ...  41056.0  46225.0  43934.0
+    # 2017-08-01 21:00:00        213    21          1  ...  40151.0  44510.0  42848.0
+    # 2017-08-01 22:00:00        213    22          1  ...  38662.0  42467.0  40861.0
+    # 2017-08-01 23:00:00        213    23          1  ...  35583.0  38646.0  37361.0
+    # 2017-08-02 00:00:00        214     0          2  ...  32181.0  34829.0  33743.0
 
-# [136567 rows x 9 columns]
+    # [136567 rows x 9 columns]
 
-y_train = train[TARGET]
-# print(y_train)
-# Datetime
-# 2002-01-01 01:00:00    30393.0
-# 2002-01-01 02:00:00    29265.0
-# 2002-01-01 03:00:00    28357.0
-# 2002-01-01 04:00:00    27899.0
-# 2002-01-01 05:00:00    28057.0
-#                         ...
-# 2017-08-01 20:00:00    45090.0
-# 2017-08-01 21:00:00    43843.0
-# 2017-08-01 22:00:00    41850.0
-# 2017-08-01 23:00:00    38473.0
-# 2017-08-02 00:00:00    35126.0
-# Name: PJME_MW, Length: 136567, dtype: float64
+    y_train = train[TARGET]
+    # print(y_train)
+    # Datetime
+    # 2002-01-01 01:00:00    30393.0
+    # 2002-01-01 02:00:00    29265.0
+    # 2002-01-01 03:00:00    28357.0
+    # 2002-01-01 04:00:00    27899.0
+    # 2002-01-01 05:00:00    28057.0
+    #                         ...
+    # 2017-08-01 20:00:00    45090.0
+    # 2017-08-01 21:00:00    43843.0
+    # 2017-08-01 22:00:00    41850.0
+    # 2017-08-01 23:00:00    38473.0
+    # 2017-08-02 00:00:00    35126.0
+    # Name: PJME_MW, Length: 136567, dtype: float64
 
-X_test = test[FEATURES]
-y_test = test[TARGET]
+    X_test = test[FEATURES]
+    y_test = test[TARGET]
 
-# create and fit the model
-reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',    
-                        n_estimators=1000,
-                        early_stopping_rounds=50,
-                        objective='reg:linear',
-                        max_depth=3,
-                        learning_rate=0.01
-                        )
-reg.fit(X_train, y_train,
-        eval_set=[(X_train, y_train), (X_test, y_test)],
-        verbose=100
-        )
+    # create and fit the model
+    reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',    
+                            n_estimators=1000,
+                            early_stopping_rounds=50,
+                            objective='reg:linear',
+                            max_depth=3,
+                            learning_rate=0.01
+                            )
+    reg.fit(X_train, y_train,
+            eval_set=[(X_train, y_train), (X_test, y_test)],
+            verbose=100
+            )
 
-y_pred = reg.predict(X_test)
-preds.append(y_pred)
-score = np.sqrt(mean_squared_error(y_test, y_pred))
-scores.append(score)
+    y_pred = reg.predict(X_test)
+    # print(y_pred)
+    # [27884.035 27147.71  26344.05  ... 38405.37  36211.242 30370.074]
 
-print(f'Score across folds {np.mean(scores):0.4f}')
-print(f'Fold scores:{scores}')
+    preds.append(y_pred)
+    # print(preds)
+    # [array([27884.035, 27147.71 , 26344.05 , ..., 38405.37 , 36211.242,
+    #        30370.074], dtype=float32)]
+
+    score = np.sqrt(mean_squared_error(y_test, y_pred))
+    # print(score)
+    # 3996.298054855067
+
+    scores.append(score)
+
+# print(f'Score across folds {np.mean(scores):0.4f}')
+# print(f'Fold scores:{scores}')
+# Score across folds 3750.6406
+# Fold scores:[3753.2775219986684, 3434.3528874818867, 3475.9138463312997, 4093.36
+# 08331481823, 3996.298054855067]
 
 
 # Predicting the Future
@@ -253,33 +266,58 @@ print(f'Fold scores:{scores}')
 # Run those dates through our feature creation code + lag creation
 
 # Retrain on all data
-# df = create_features(df)
+df = create_features(df)
 
-# FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year',
-#             'lag1','lag2','lag3']
-# TARGET = 'PJME_MW'
+FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year',
+            'lag1','lag2','lag3']
+TARGET = 'PJME_MW'
 
-# X_all = df[FEATURES]
-# y_all = df[TARGET]
+X_all = df[FEATURES]
+y_all = df[TARGET]
 
-# reg = xgb.XGBRegressor(base_score=0.5,
-#                         booster='gbtree',    
-#                         n_estimators=500,
-#                         objective='reg:linear',
-#                         max_depth=3,
-#                         learning_rate=0.01
-#                         )
-# reg.fit(X_all, y_all,
-#         eval_set=[(X_all, y_all)],
-#         verbose=100
-#         )
+reg = xgb.XGBRegressor(base_score=0.5,
+                        booster='gbtree',    
+                        n_estimators=500,
+                        objective='reg:linear',
+                        max_depth=3,
+                        learning_rate=0.01
+                        )
+reg.fit(X_all, y_all,
+        eval_set=[(X_all, y_all)],
+        verbose=100
+        )
+
+# find the highest date in the df
+# print(df.index.max())
+# 2018-08-03 00:00:00
 
 
+# Create future dataframe
+future = pd.date_range('2018-08-03','2019-08-01', freq='1h')
+future_df = pd.DataFrame(index=future)
+future_df['isFuture'] = True
+df['isFuture'] = False
+df_and_future = pd.concat([df, future_df])
+# create features and add lags
+df_and_future = create_features(df_and_future)
+df_and_future = add_lags(df_and_future)
 
+# make a copy of the df to work with
+future_w_features = df_and_future.query('isFuture').copy()
 
+# Predict the future
+future_w_features['pred'] = reg.predict(future_w_features[FEATURES])
 
+# chart6
+future_w_features['pred'].plot(figsize=(10, 5),
+                                color=color_pal[4],
+                                ms=1,
+                                lw=1,
+                                title='Chart 6 Future Predictions'
+                                )
+plt.show()
 
-
+future_w_features.to_csv("predictions.csv")
 
 
 

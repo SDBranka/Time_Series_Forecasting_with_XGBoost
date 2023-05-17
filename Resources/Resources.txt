@@ -1,0 +1,14 @@
+Pandas date_range to generate monthly data at beginning of the month
+https://stackoverflow.com/questions/34915828/pandas-date-range-to-generate-monthly-data-at-beginning-of-the-month
+
+pandas.date_range documentation
+https://pandas.pydata.org/docs/reference/api/pandas.date_range.html
+- Offset Aliases
+  https://pandas.pydata.org/docs/user_guide/timeseries.html#timeseries-offset-aliases
+
+  
+
+
+
+
+
