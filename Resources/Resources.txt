@@ -6,7 +6,17 @@ https://pandas.pydata.org/docs/reference/api/pandas.date_range.html
 - Offset Aliases
   https://pandas.pydata.org/docs/user_guide/timeseries.html#timeseries-offset-aliases
 
-  
+sklearn.model_selection.TimeSeriesSplit documentation
+- https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html
+
+pandas.Timedelta documentation
+- https://pandas.pydata.org/docs/reference/api/pandas.Timedelta.html
+Python Pandas - Timedelta
+-https://www.tutorialspoint.com/python_pandas/python_pandas_timedelta.htm
+Pandas Timedelta in months
+https://stackoverflow.com/questions/40923820/pandas-timedelta-in-months
+How to Calculate Timedelta in Months in Pandas
+- https://www.geeksforgeeks.org/how-to-calculate-timedelta-in-months-in-pandas/
 
 
 

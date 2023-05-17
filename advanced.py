@@ -23,7 +23,12 @@ def create_features(df):
 
 
 def add_lags(df):
+    # create a dictionary of all the label values from the dataset
     target_map = df['PJME_MW'].to_dict()
+    # lag cannot be longer than the forecasting horizon
+    # why 364 and not 365? This creates a number divisable by 7 so 
+    # that we end up on the same day of the week so we don't have to 
+    # worry about mapping out days of the week into the past
     df['lag1'] = (df.index - pd.Timedelta('364 days')).map(target_map)
     df['lag2'] = (df.index - pd.Timedelta('728 days')).map(target_map)
     df['lag3'] = (df.index - pd.Timedelta('1092 days')).map(target_map)
@@ -50,6 +55,7 @@ df.index = pd.to_datetime(df.index)
 
 
 # Outlier Analysis and removal
+# Visually inspect the outlier values
 # chart2
 # df['PJME_MW'].plot(kind='hist', bins=500,
 #                     title="Chart 2 MW Bins Hist"
@@ -64,7 +70,8 @@ df.index = pd.to_datetime(df.index)
 #                                             )
 # plt.show()
 
-# 
+# Filter out the outlier values
+# create a df of the values that are greater than 19000 
 df = df.query('PJME_MW > 19_000').copy()
 # print(df.head())
 #                      PJME_MW
@@ -92,9 +99,21 @@ test = df.loc[df.index >= '01-01-2015']
 
 
 # Time Series Cross Validation
+# TimeSeriesSplit 
+# n_splits - Number of splits. Must be at least 2
+# test_size - Used to limit the size of the test set
+# gap - Number of samples to exclude from the end of 
+#       each train set before the test set.
+# We plan to predict one year into the future with this model, so the
+# test size is set to 24 hours * 365 days * 1 year
+# We plan to exclude 24 hours between when the training set ends and
+# the test set begins, so the gap is set to 24 (hours)
 tss = TimeSeriesSplit(n_splits=5, test_size=24*365*1, gap=24)
 # print(tss)
 # TimeSeriesSplit(gap=24, max_train_size=None, n_splits=5, test_size=8760)
+
+# the data frame is sorted by the datetime object index or else the
+# TimeSeriesSplit will not work
 df = df.sort_index()
 # print(df.head())
 # Datetime
@@ -105,6 +124,7 @@ df = df.sort_index()
 # 2002-01-01 05:00:00  28057.0
 
 
+# Display the TimeSeriesSplit to see how each fold works
 # chart5
 # fig, axs = plt.subplots(5, 1, figsize=(15, 15), sharex=True)
 
@@ -155,6 +175,16 @@ df = add_lags(df)
 # 2002-01-01 05:00:00  28057.0     5          1  ...   NaN   NaN   NaN
 
 # [5 rows x 12 columns]
+# print(df.tail())
+#                      PJME_MW  hour  dayofweek  ...     lag1     lag2     lag3
+# Datetime                                       ...
+# 2018-08-02 20:00:00  44057.0    20          3  ...  42256.0  41485.0  38804.0
+# 2018-08-02 21:00:00  43256.0    21          3  ...  41210.0  40249.0  38748.0
+# 2018-08-02 22:00:00  41552.0    22          3  ...  39525.0  38698.0  37330.0
+# 2018-08-02 23:00:00  38500.0    23          3  ...  36490.0  35406.0  34552.0
+# 2018-08-03 00:00:00  35486.0     0          4  ...  33539.0  32094.0  31695.0
+
+# [5 rows x 12 columns]
 
 
 # Train Using Cross Validation
@@ -175,6 +205,10 @@ df = df.sort_index()
 fold = 0
 preds = []
 scores = []
+# loop through the cross validation folds, train the model on each fold
+# on each of the train/test splits, then score the models efficacy using
+# the mean squared error, and save those scores to a list so that we can 
+# evaluate the scores across all folds
 for train_idx, val_idx in tss.split(df):
     train = df.iloc[train_idx]
     test = df.iloc[val_idx]
@@ -253,6 +287,9 @@ for train_idx, val_idx in tss.split(df):
 
     scores.append(score)
 
+# The more we tune the hyperparameters and the more features we add the
+# better the scores across each fold should get
+
 # print(f'Score across folds {np.mean(scores):0.4f}')
 # print(f'Fold scores:{scores}')
 # Score across folds 3750.6406
@@ -266,6 +303,10 @@ for train_idx, val_idx in tss.split(df):
 # Run those dates through our feature creation code + lag creation
 
 # Retrain on all data
+# before attempting to predict into the future we should train the model
+# upon all available known data
+# for this we will not be splitting the data into train/test sets
+
 df = create_features(df)
 
 FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year',
@@ -275,6 +316,11 @@ TARGET = 'PJME_MW'
 X_all = df[FEATURES]
 y_all = df[TARGET]
 
+# number of estimators changed to 500 in this process because looking at the 
+# original training of the model it can be see that around the 500th epoch
+# the model begins to overfit
+
+# build the regressor
 reg = xgb.XGBRegressor(base_score=0.5,
                         booster='gbtree',    
                         n_estimators=500,
@@ -287,90 +333,65 @@ reg.fit(X_all, y_all,
         verbose=100
         )
 
+
+# Project into the future
 # find the highest date in the df
 # print(df.index.max())
 # 2018-08-03 00:00:00
 
 
-# Create future dataframe
+# create a range of dates from our last date until 1 month from that 
+# date incremented by hour
 future = pd.date_range('2018-08-03','2019-08-01', freq='1h')
+# Create future dataframe making the future dates the index
 future_df = pd.DataFrame(index=future)
+# because we have lag dates, we will want to we will want to add this
+# onto the existing dataframe
+# create a column in each dataframe that will depict which dates occur
+# in the future (True) and which are from existing data (False) 
 future_df['isFuture'] = True
 df['isFuture'] = False
+# join the two dataframes to have one
 df_and_future = pd.concat([df, future_df])
 # create features and add lags
 df_and_future = create_features(df_and_future)
 df_and_future = add_lags(df_and_future)
 
-# make a copy of the df to work with
+# now that we have created our lag features we can extract out just 
+# the data from dates that occur in the future
 future_w_features = df_and_future.query('isFuture').copy()
 
-# Predict the future
+
+# Predict into the future 1 year
 future_w_features['pred'] = reg.predict(future_w_features[FEATURES])
 
+# visualize the predictions
 # chart6
-future_w_features['pred'].plot(figsize=(10, 5),
-                                color=color_pal[4],
-                                ms=1,
-                                lw=1,
-                                title='Chart 6 Future Predictions'
-                                )
-plt.show()
+# future_w_features['pred'].plot(figsize=(10, 5),
+#                                 color=color_pal[4],
+#                                 ms=1,
+#                                 lw=1,
+#                                 title='Chart 6 Future Predictions'
+#                                 )
+# plt.show()
 
+# produce csv of the predictions
 future_w_features.to_csv("predictions.csv")
 
+# Saving Model For later
+# Save model
+reg.save_model('model.json')
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+reg_new = xgb.XGBRegressor()
+reg_new.load_model('model.json')
+future_w_features['pred'] = reg_new.predict(future_w_features[FEATURES])
+# chart7
+future_w_features['pred'].plot(figsize=(10, 5),
+                                color=color_pal[4],
+                                ms=1, lw=1,
+                                title='Chart 7 Future Predictions From Saved Model'
+                                )
+plt.show()
 
 
