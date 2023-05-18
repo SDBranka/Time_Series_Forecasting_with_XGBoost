@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import TimeSeriesSplit              # for Time Series Cross Validation
 
 
-### --------- Functions --------- #
+### --------- Functions --------- ###
 # Create time series features based on time series index.
 def create_features(df):
     df = df.copy()
@@ -340,7 +340,7 @@ reg.fit(X_all, y_all,
 # 2018-08-03 00:00:00
 
 
-# create a range of dates from our last date until 1 month from that 
+# create a range of dates from our last date until 1 year from that 
 # date incremented by hour
 future = pd.date_range('2018-08-03','2019-08-01', freq='1h')
 # Create future dataframe making the future dates the index

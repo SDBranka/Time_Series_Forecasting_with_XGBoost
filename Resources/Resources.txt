@@ -18,6 +18,11 @@ https://stackoverflow.com/questions/40923820/pandas-timedelta-in-months
 How to Calculate Timedelta in Months in Pandas
 - https://www.geeksforgeeks.org/how-to-calculate-timedelta-in-months-in-pandas/
 
+TimeSeriesSplit: how to use it
+https://www.kaggle.com/code/tomwarrens/timeseriessplit-how-to-use-it/notebook
+
+
+
 
 
 
